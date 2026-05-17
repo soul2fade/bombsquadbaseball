@@ -24,4 +24,6 @@ export const spring: Character = {
     colorPrimary: '#39E75F',
     colorSecondary: '#283044',
   },
+  position: 'SS',
+  defensiveStats: { range: 88, reactionMs: 140, armStrength: 80 },
 };

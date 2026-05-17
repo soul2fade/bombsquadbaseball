@@ -24,4 +24,6 @@ export const ember: Character = {
     colorPrimary: '#950101',
     colorSecondary: '#FFB703',
   },
+  position: 'RF',
+  defensiveStats: { range: 70, reactionMs: 180, armStrength: 82 },
 };

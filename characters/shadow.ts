@@ -24,4 +24,6 @@ export const shadow: Character = {
     colorPrimary: '#1B263B',
     colorSecondary: '#5DA9E9',
   },
+  position: 'CF',
+  defensiveStats: { range: 78, reactionMs: 160, armStrength: 75 },
 };

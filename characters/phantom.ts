@@ -24,4 +24,6 @@ export const phantom: Character = {
     colorPrimary: '#533483',
     colorSecondary: '#16213E',
   },
+  position: 'LF',
+  defensiveStats: { range: 72, reactionMs: 170, armStrength: 70 },
 };

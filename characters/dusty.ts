@@ -25,4 +25,6 @@ export const dusty: Character = {
     colorPrimary: '#D4A96A',
     colorSecondary: '#8B6914',
   },
+  position: 'P',
+  defensiveStats: { range: 55, reactionMs: 220, armStrength: 70 },
 };

@@ -24,4 +24,6 @@ export const summit: Character = {
     colorPrimary: '#3A506B',
     colorSecondary: '#A0C4FF',
   },
+  position: '3B',
+  defensiveStats: { range: 62, reactionMs: 200, armStrength: 85 },
 };

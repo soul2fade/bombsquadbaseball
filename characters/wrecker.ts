@@ -24,4 +24,6 @@ export const wrecker: Character = {
     colorPrimary: '#D62828',
     colorSecondary: '#FFB703',
   },
+  position: '1B',
+  defensiveStats: { range: 48, reactionMs: 280, armStrength: 65 },
 };
