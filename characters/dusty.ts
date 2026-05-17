@@ -4,6 +4,7 @@ export const dusty: Character = {
   id: 'dusty',
   name: 'Dusty',
   role: 'pitcher',
+  team: 'dust_devils',
   unlockCondition: {
     type: 'wins_at_stadium',
     stadiumId: 'sandstorm',
