@@ -23,7 +23,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.uiBg },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Slugger', headerShown: false }} />
+        <Stack.Screen name="index" options={{ title: 'Bomb Squad Baseball', headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="game/[stadium]" options={{ title: 'Play Ball', headerShown: false }} />
         <Stack.Screen name="game/results" options={{ title: 'Results' }} />

@@ -15,8 +15,8 @@ export default function MainMenu() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>SLUGGER</Text>
-          <Text style={styles.subtitle}>Project Baseball</Text>
+          <Text style={styles.title}>BOMB SQUAD</Text>
+          <Text style={styles.subtitle}>Baseball</Text>
         </View>
 
         <View style={styles.teamCard}>

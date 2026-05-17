@@ -81,7 +81,7 @@ export const useProgressStore = create<PlayerProgress & ProgressActions>()(
       reset: () => set(DEFAULTS),
     }),
     {
-      name: 'slugger-progress',
+      name: 'bomb-squad-progress',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

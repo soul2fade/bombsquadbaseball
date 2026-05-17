@@ -51,7 +51,7 @@ export const useSettingsStore = create<UserSettings & SettingsActions>()(
       },
     }),
     {
-      name: 'slugger-settings',
+      name: 'bomb-squad-settings',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

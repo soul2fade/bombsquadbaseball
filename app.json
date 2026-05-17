@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Slugger",
-    "slug": "slugger",
+    "name": "Bomb Squad Baseball",
+    "slug": "bomb-squad-baseball",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "slugger",
+    "scheme": "bombsquadbaseball",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
@@ -14,10 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.slugger.app"
+      "bundleIdentifier": "com.bombsquadbaseball.app"
     },
     "android": {
-      "package": "com.slugger.app",
+      "package": "com.bombsquadbaseball.app",
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
