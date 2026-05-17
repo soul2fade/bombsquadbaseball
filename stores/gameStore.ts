@@ -2,8 +2,23 @@ import { create } from 'zustand';
 import { AtBatResult } from '../constants/gameRules';
 import { RULES } from '../constants/gameRules';
 import { WindResult } from '../engines/windEngine';
+import { Position, CHARACTER_MAP } from '../characters';
 
 export type Half = 'top' | 'bottom';
+
+export type Lineup = Record<Position, string | 'generic'>;
+
+const DEFAULT_LINEUP: Lineup = {
+  P: 'generic',
+  C: 'generic',
+  '1B': 'generic',
+  '2B': 'generic',
+  SS: 'generic',
+  '3B': 'generic',
+  LF: 'generic',
+  CF: 'generic',
+  RF: 'generic',
+};
 
 export interface GameState {
   stadiumId: string | null;
@@ -21,11 +36,13 @@ export interface GameState {
   recentResults: AtBatResult[];
   gameOver: boolean;
   winner: 'home' | 'away' | null;
+  lineup: Lineup;
 }
 
 interface GameActions {
   startGame: (stadiumId: string, teamName: string, opponentName: string) => void;
   setWind: (wind: WindResult) => void;
+  setLineup: (unlockedCharacterIds: string[]) => void;
   recordPitchResult: (result: AtBatResult) => void;
   resetCount: () => void;
   endGame: () => void;
@@ -47,6 +64,7 @@ const INITIAL_STATE: GameState = {
   recentResults: [],
   gameOver: false,
   winner: null,
+  lineup: DEFAULT_LINEUP,
 };
 
 export const useGameStore = create<GameState & GameActions>((set, get) => ({
@@ -56,6 +74,17 @@ export const useGameStore = create<GameState & GameActions>((set, get) => ({
     set({ ...INITIAL_STATE, stadiumId, teamName, opponentName }),
 
   setWind: (wind) => set({ currentWind: wind }),
+
+  setLineup: (unlockedCharacterIds) => {
+    const lineup: Lineup = { ...DEFAULT_LINEUP };
+    for (const id of unlockedCharacterIds) {
+      const char = CHARACTER_MAP[id];
+      if (char?.position) {
+        lineup[char.position] = id;
+      }
+    }
+    set({ lineup });
+  },
 
   resetCount: () => set({ balls: 0, strikes: 0 }),
 
