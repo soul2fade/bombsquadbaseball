@@ -31,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="settings/chants" options={{ title: 'Crowd Chants' }} />
         <Stack.Screen name="settings/profile" options={{ title: 'Profile' }} />
         <Stack.Screen name="unlock/index" options={{ title: 'Character Gallery' }} />
+        <Stack.Screen name="test/3d" options={{ headerShown: false }} />
       </Stack>
     </GestureHandlerRootView>
   );

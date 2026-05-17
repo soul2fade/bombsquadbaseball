@@ -58,6 +58,9 @@ export default function MainMenu() {
           <Link href="/settings" asChild>
             <Button title="Settings" variant="secondary" onPress={() => {}} />
           </Link>
+          <Link href={"/test/3d" as any} asChild>
+            <Button title="3D Test" variant="secondary" onPress={() => {}} />
+          </Link>
         </View>
       </ScrollView>
     </SafeAreaView>
