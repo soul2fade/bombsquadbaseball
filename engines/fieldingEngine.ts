@@ -35,3 +35,22 @@ export const CLOSE_PLAY_WINDOW_MS = 250;
 export const TAP_WINDOW_MS = 600;
 export const TAP_SWEET_SPOT_MS = 200;
 export const BASE_FIELDER_SPEED_PX_PER_MS = 0.6;
+
+function distance(a: Point, b: Point): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+export function pickFielder(landing: Point): Position {
+  let best: Position = 'P';
+  let bestDist = Infinity;
+  for (const pos of POSITIONS) {
+    const d = distance(landing, HOME_POSITIONS[pos]);
+    if (d < bestDist) {
+      bestDist = d;
+      best = pos;
+    }
+  }
+  return best;
+}
