@@ -1,4 +1,11 @@
+import { ChantSet } from '../engines/chantEngine';
 import { StadiumConfig } from './index';
+
+export const volcanoChants: ChantSet = {
+  eruption_warning: { text: 'SHE\'S GONNA BLOW!', style: 'shout', customizable: true },
+  home_run: { text: 'HOTTER THAN LAVA!', style: 'roar', customizable: true },
+  strikeout: { text: 'BURNED AT THE PLATE!', style: 'shout', customizable: true },
+};
 
 export const volcanoStadium: StadiumConfig = {
   id: 'volcano',
@@ -10,8 +17,8 @@ export const volcanoStadium: StadiumConfig = {
     config: { eruptionInning: 7, eruptionSpeedBoost: 0.2 },
   },
   ambientSound: 'assets/sounds/ambient/volcano_rumble.mp3',
-  crowdChants: {},
+  crowdChants: volcanoChants,
   unlockCharacter: 'ember',
   unlockCondition: { type: 'wins_at_stadium', stadiumId: 'volcano', count: 3 },
-  status: 'coming_soon',
+  status: 'live',
 };

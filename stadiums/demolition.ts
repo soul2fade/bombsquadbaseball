@@ -1,4 +1,10 @@
+import { ChantSet } from '../engines/chantEngine';
 import { StadiumConfig } from './index';
+
+export const demolitionChants: ChantSet = {
+  home_run: { text: 'BOOM! GOODBYE!', style: 'roar', customizable: true },
+  strikeout: { text: 'Even short walls cannot save you!', style: 'shout', customizable: true },
+};
 
 export const demolitionStadium: StadiumConfig = {
   id: 'demolition',
@@ -10,8 +16,8 @@ export const demolitionStadium: StadiumConfig = {
     config: { wallDistanceModifier: 0.75 },
   },
   ambientSound: 'assets/sounds/ambient/stadium_default.mp3',
-  crowdChants: {},
+  crowdChants: demolitionChants,
   unlockCharacter: 'wrecker',
   unlockCondition: { type: 'wins_at_stadium', stadiumId: 'demolition', count: 3 },
-  status: 'coming_soon',
+  status: 'live',
 };

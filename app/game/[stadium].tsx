@@ -10,6 +10,11 @@ import { ChantEngine } from '../../engines/chantEngine';
 import { getActivePowerUps, PowerUp } from '../../engines/powerUpEngine';
 import { throwPitch, PitchResult } from '../../engines/pitchEngine';
 import { resolveSwing, HitResult } from '../../engines/hitEngine';
+import {
+  applyQuirkToHit,
+  getQuirkPreEffects,
+  QuirkPreEffects,
+} from '../../engines/quirkEngine';
 import { PITCH_TYPES, PitchType, AtBatResult } from '../../constants/gameRules';
 import { TUNING } from '../../constants/config';
 
@@ -47,6 +52,7 @@ export default function GameScreen() {
   const [pitch, setPitch] = useState<PitchResult | null>(null);
   const [lastResult, setLastResult] = useState<HitResult | null>(null);
   const [batterSwinging, setBatterSwinging] = useState(false);
+  const [quirk, setQuirk] = useState<QuirkPreEffects | null>(null);
   const pitchStartTimeRef = useRef<number>(0);
 
   const windEngineRef = useRef<WindEngine | null>(null);
@@ -74,6 +80,7 @@ export default function GameScreen() {
     );
     game.startGame(stadium.id, settings.teamName, 'Visitors');
     rollNextWind();
+    rollNextQuirk();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stadium?.id]);
 
@@ -113,9 +120,15 @@ export default function GameScreen() {
     if (wind.state === 'sandstorm') {
       triggerChant('sandstorm_trigger');
     } else if (wind.state === 'calm') {
-      // mild — surface stadium-specific chant if exists
       if (stadium?.crowdChants['calm_wind']) triggerChant('calm_wind');
     }
+  }
+
+  function rollNextQuirk() {
+    if (!stadium) return;
+    const effects = getQuirkPreEffects(stadium, { inning: game.inning });
+    setQuirk(effects);
+    for (const chant of effects.triggerChants) triggerChant(chant);
   }
 
   function triggerChant(event: string) {
@@ -130,7 +143,11 @@ export default function GameScreen() {
 
   function pickPitch(type: PitchType) {
     if (phase !== 'select_pitch' || game.gameOver) return;
-    const result = throwPitch(type, pitcherBoost);
+    const combinedPitcherMod = {
+      speedBoost: (pitcherBoost.speedBoost ?? 0) + (quirk?.pitchMod.speedBoost ?? 0),
+      accuracyBoost: (pitcherBoost.accuracyBoost ?? 0) + (quirk?.pitchMod.accuracyBoost ?? 0),
+    };
+    const result = throwPitch(type, combinedPitcherMod);
     setPitch(result);
     setPhase('pitching');
     pitchStartTimeRef.current = Date.now();
@@ -151,20 +168,43 @@ export default function GameScreen() {
   }
 
   function resolveAtBat(swingInput: { swung: boolean; swingAtMs: number; pitchArrivalMs: number }) {
-    if (!pitch || !game.currentWind) return;
+    if (!pitch || !game.currentWind || !stadium) return;
     if (phase === 'resolved') return;
-    const result = resolveSwing(pitch, swingInput, game.currentWind, batterBoost);
-    setLastResult(result);
-    game.recordPitchResult(result.result);
+
+    const combinedBatterBoost = {
+      contactBoost: batterBoost.contactBoost ?? 0,
+      powerBoost: (batterBoost.powerBoost ?? 0) + (quirk?.powerBoost ?? 0),
+    };
+
+    const adjustedWind =
+      quirk && quirk.visibilityReduction > game.currentWind.visibilityReduction
+        ? { ...game.currentWind, visibilityReduction: quirk.visibilityReduction }
+        : game.currentWind;
+
+    const rawHit = resolveSwing(pitch, swingInput, adjustedWind, combinedBatterBoost);
+
+    let hit = rawHit;
+    if (quirk && quirk.hrThresholdDelta !== 0 && hit.timing !== 'miss') {
+      const adjustedPower = hit.power - quirk.hrThresholdDelta;
+      if (adjustedPower >= 0.85 && hit.result !== 'home_run') {
+        hit = { ...hit, result: 'home_run', power: adjustedPower };
+      }
+    }
+
+    const { hit: finalHit, chants: quirkChants } = applyQuirkToHit(stadium, hit);
+    setLastResult(finalHit);
+    game.recordPitchResult(finalHit.result);
+    for (const c of quirkChants) triggerChant(c);
     setPhase('resolved');
-    fireChantsForResult(result.result);
-    if (result.result === 'home_run') recordHomerun();
-    if (result.result === 'strikeout') recordStrikeout();
+    fireChantsForResult(finalHit.result);
+    if (finalHit.result === 'home_run') recordHomerun();
+    if (finalHit.result === 'strikeout') recordStrikeout();
     setTimeout(() => {
       setBatterSwinging(false);
       setPitch(null);
       setLastResult(null);
       rollNextWind();
+      rollNextQuirk();
       setPhase('select_pitch');
     }, 1600);
   }
@@ -222,7 +262,11 @@ export default function GameScreen() {
   }
 
   const showSandstorm = game.currentWind?.state === 'sandstorm';
-  const ballOpacity = game.currentWind ? 1 - game.currentWind.visibilityReduction : 1;
+  const showFlicker = !!quirk?.flickerActive;
+  const showEruption = !!quirk?.eruptionActive;
+  const baseVisibilityReduction = game.currentWind?.visibilityReduction ?? 0;
+  const quirkVisibilityReduction = quirk?.visibilityReduction ?? 0;
+  const ballOpacity = 1 - Math.max(baseVisibilityReduction, quirkVisibilityReduction);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -253,7 +297,13 @@ export default function GameScreen() {
       )}
 
       <View style={styles.fieldContainer}>
-        <Field stadium={stadium} bases={game.bases} sandstormVisible={showSandstorm} />
+        <Field
+          stadium={stadium}
+          bases={game.bases}
+          sandstormVisible={showSandstorm}
+          flickerVisible={showFlicker}
+          eruptionVisible={showEruption}
+        />
         <View style={styles.pitcherPos}>
           <Pitcher throwing={phase === 'pitching'} />
         </View>

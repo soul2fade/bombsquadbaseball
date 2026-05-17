@@ -1,4 +1,11 @@
+import { ChantSet } from '../engines/chantEngine';
 import { StadiumConfig } from './index';
+
+export const hauntedChants: ChantSet = {
+  ghost_catch: { text: 'A GHOST CAUGHT IT!', style: 'moan', customizable: true },
+  home_run: { text: 'THROUGH THE PHANTOMS!', style: 'roar', customizable: true },
+  strikeout: { text: 'Spooked at the plate!', style: 'shout', customizable: true },
+};
 
 export const hauntedStadium: StadiumConfig = {
   id: 'haunted',
@@ -10,8 +17,8 @@ export const hauntedStadium: StadiumConfig = {
     config: { appearanceChance: 0.12 },
   },
   ambientSound: 'assets/sounds/ambient/haunted_whispers.mp3',
-  crowdChants: {},
+  crowdChants: hauntedChants,
   unlockCharacter: 'phantom',
   unlockCondition: { type: 'wins_at_stadium', stadiumId: 'haunted', count: 3 },
-  status: 'coming_soon',
+  status: 'live',
 };

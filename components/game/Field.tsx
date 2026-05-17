@@ -6,9 +6,17 @@ interface Props {
   stadium: StadiumConfig;
   bases: [boolean, boolean, boolean];
   sandstormVisible?: boolean;
+  flickerVisible?: boolean;
+  eruptionVisible?: boolean;
 }
 
-export function Field({ stadium, bases, sandstormVisible }: Props) {
+export function Field({
+  stadium,
+  bases,
+  sandstormVisible,
+  flickerVisible,
+  eruptionVisible,
+}: Props) {
   const { palette } = stadium;
   return (
     <View style={[styles.container, { backgroundColor: palette.sky }]}>
@@ -22,6 +30,8 @@ export function Field({ stadium, bases, sandstormVisible }: Props) {
         <View style={[styles.pitchersMound, { backgroundColor: palette.dirt }]} />
       </View>
       {sandstormVisible && <View style={styles.sandstormOverlay} pointerEvents="none" />}
+      {flickerVisible && <View style={styles.flickerOverlay} pointerEvents="none" />}
+      {eruptionVisible && <View style={styles.eruptionOverlay} pointerEvents="none" />}
     </View>
   );
 }
@@ -114,5 +124,21 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: 'rgba(212, 169, 106, 0.7)',
+  },
+  flickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  },
+  eruptionOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(149, 1, 1, 0.25)',
   },
 });
