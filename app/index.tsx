@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { Link, Redirect, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../constants/theme';
 import { Button } from '../components/ui/Button';
@@ -12,9 +12,7 @@ export default function MainMenu() {
   const teamName = useSettingsStore((s) => s.teamName);
   const hasSeenOnboarding = useSettingsStore((s) => s.hasSeenOnboarding);
 
-  useEffect(() => {
-    if (!hasSeenOnboarding) router.replace('/onboarding');
-  }, [hasSeenOnboarding, router]);
+  if (!hasSeenOnboarding) return <Redirect href="/onboarding" />;
 
   return (
     <SafeAreaView style={styles.safe}>
