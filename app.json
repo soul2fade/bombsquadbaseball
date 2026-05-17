@@ -7,6 +7,9 @@
     "scheme": "slugger",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": ["**/*"],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.slugger.app"
