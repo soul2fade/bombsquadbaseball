@@ -54,3 +54,67 @@ export function pickFielder(landing: Point): Position {
   }
   return best;
 }
+
+export type BallType = 'grounder' | 'liner' | 'fly';
+
+export interface BallTrajectory {
+  landing: Point;
+  airTimeMs: number;
+  ballType: BallType;
+}
+
+export interface FielderState {
+  position: Position;
+  home: Point;
+  stats: DefensiveStats;
+}
+
+export interface FieldingResult {
+  outcome: 'caught' | 'hit';
+  isCloseplay: boolean;
+  fielderId: Position;
+  hitDepth?: 'shallow' | 'mid' | 'deep';
+}
+
+const FIELD_PX_SCALE = 280;
+
+function computeFielderArrivalMs(fielder: FielderState, landing: Point): number {
+  const dist = distance(fielder.home, landing) * FIELD_PX_SCALE;
+  const speed = (fielder.stats.range / 100) * BASE_FIELDER_SPEED_PX_PER_MS;
+  return fielder.stats.reactionMs + dist / speed;
+}
+
+function classifyDepth(y: number): 'shallow' | 'mid' | 'deep' {
+  if (y < 0.4) return 'shallow';
+  if (y < 0.7) return 'mid';
+  return 'deep';
+}
+
+export function resolveCatch(
+  fielder: FielderState,
+  ball: BallTrajectory,
+  rng: () => number
+): FieldingResult {
+  const fielderArrival = computeFielderArrivalMs(fielder, ball.landing);
+  const ballArrival = ball.airTimeMs;
+  const delta = fielderArrival - ballArrival;
+
+  if (delta < -CLOSE_PLAY_WINDOW_MS) {
+    return { outcome: 'caught', isCloseplay: false, fielderId: fielder.position };
+  }
+  if (delta > CLOSE_PLAY_WINDOW_MS) {
+    return {
+      outcome: 'hit',
+      isCloseplay: false,
+      fielderId: fielder.position,
+      hitDepth: classifyDepth(ball.landing.y),
+    };
+  }
+  const caught = rng() < 0.5;
+  return {
+    outcome: caught ? 'caught' : 'hit',
+    isCloseplay: true,
+    fielderId: fielder.position,
+    hitDepth: caught ? undefined : classifyDepth(ball.landing.y),
+  };
+}
