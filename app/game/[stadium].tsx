@@ -32,9 +32,22 @@ import { PowerUpBadge } from '../../components/game/PowerUpBadge';
 import { Ball } from '../../components/game/Ball';
 import { Pitcher } from '../../components/game/Pitcher';
 import { Batter } from '../../components/game/Batter';
+import { Fielder } from '../../components/game/Fielder';
+import { BallInFlight } from '../../components/game/BallInFlight';
+import { CloseplayPrompt } from '../../components/game/CloseplayPrompt';
 import { Button } from '../../components/ui/Button';
+import {
+  pickFielder,
+  resolveCatch,
+  HOME_POSITIONS,
+  GENERIC_DEFENSIVE_STATS,
+  POSITIONS,
+  FielderState,
+  FieldingResult,
+} from '../../engines/fieldingEngine';
+import { CHARACTER_MAP, Position } from '../../characters';
 
-type Phase = 'select_pitch' | 'pitching' | 'swing_window' | 'resolved';
+type Phase = 'select_pitch' | 'pitching' | 'swing_window' | 'ball_in_flight' | 'close_play' | 'resolved';
 
 export default function GameScreen() {
   const { stadium: stadiumId } = useLocalSearchParams<{ stadium: string }>();
@@ -54,7 +67,13 @@ export default function GameScreen() {
   const [lastResult, setLastResult] = useState<HitResult | null>(null);
   const [batterSwinging, setBatterSwinging] = useState(false);
   const [quirk, setQuirk] = useState<QuirkPreEffects | null>(null);
+  const [fielding, setFielding] = useState<FieldingResult | null>(null);
+  const [fieldingTarget, setFieldingTarget] = useState<{ pos: Position; x: number; y: number } | null>(null);
+  const [fieldSize, setFieldSize] = useState<{ width: number; height: number }>({ width: 280, height: 280 });
   const pitchStartTimeRef = useRef<number>(0);
+
+  const lineup = useGameStore((s) => s.lineup);
+  const setLineup = useGameStore((s) => s.setLineup);
 
   const windEngineRef = useRef<WindEngine | null>(null);
   const chantEngineRef = useRef<ChantEngine | null>(null);
@@ -80,6 +99,7 @@ export default function GameScreen() {
       )
     );
     game.startGame(stadium.id, settings.teamName, 'Visitors');
+    setLineup(useProgressStore.getState().unlockedCharacters);
     audioService.init().then(() => {
       audioService.setMasterVolume(settings.masterVolume);
     });
@@ -200,21 +220,92 @@ export default function GameScreen() {
 
     const { hit: finalHit, chants: quirkChants } = applyQuirkToHit(stadium, hit);
     setLastResult(finalHit);
-    game.recordPitchResult(finalHit.result);
     for (const c of quirkChants) triggerChant(c);
-    setPhase('resolved');
-    fireChantsForResult(finalHit.result);
-    if (finalHit.result === 'home_run') recordHomerun();
-    if (finalHit.result === 'strikeout') recordStrikeout();
+
+    const skipsDefense = finalHit.landing == null || finalHit.result === 'home_run';
+    if (skipsDefense) {
+      game.recordPitchResult(finalHit.result);
+      setPhase('resolved');
+      fireChantsForResult(finalHit.result);
+      if (finalHit.result === 'home_run') recordHomerun();
+      if (finalHit.result === 'strikeout') recordStrikeout();
+      scheduleNextAtBat();
+    } else {
+      setPhase('ball_in_flight');
+    }
+  }
+
+  function scheduleNextAtBat() {
     setTimeout(() => {
       setBatterSwinging(false);
       setPitch(null);
       setLastResult(null);
+      setFielding(null);
+      setFieldingTarget(null);
       rollNextWind();
       rollNextQuirk();
       setPhase('select_pitch');
     }, 1600);
   }
+
+  const handleBallLanded = useCallback(() => {
+    if (!lastResult?.landing) {
+      setPhase('resolved');
+      scheduleNextAtBat();
+      return;
+    }
+    const fielderPos = pickFielder(lastResult.landing);
+    const home = HOME_POSITIONS[fielderPos];
+    setFieldingTarget({ pos: fielderPos, x: lastResult.landing.x, y: lastResult.landing.y });
+
+    const charId = lineup[fielderPos];
+    const char = charId !== 'generic' ? CHARACTER_MAP[charId] : undefined;
+    const stats = char?.defensiveStats ?? GENERIC_DEFENSIVE_STATS[fielderPos];
+    const fielderState: FielderState = { position: fielderPos, home, stats };
+
+    const fr = resolveCatch(
+      fielderState,
+      { landing: lastResult.landing, airTimeMs: lastResult.airTimeMs, ballType: lastResult.ballType },
+      Math.random
+    );
+    setFielding(fr);
+
+    if (fr.isCloseplay) {
+      setPhase('close_play');
+    } else {
+      applyFieldingResult(fr);
+    }
+  }, [lastResult, lineup]);
+
+  const handleCloseplayResult = useCallback((tapSuccess: boolean) => {
+    if (!fielding) return;
+    const finalOutcome = tapSuccess ? 'caught' : 'hit';
+    const bumpDepth = (d: 'shallow' | 'mid' | 'deep'): 'shallow' | 'mid' | 'deep' =>
+      d === 'shallow' ? 'mid' : d === 'mid' ? 'deep' : 'deep';
+    const baseDepth = fielding.hitDepth ?? 'mid';
+    const adjusted: FieldingResult = {
+      ...fielding,
+      outcome: finalOutcome,
+      hitDepth: finalOutcome === 'hit' ? bumpDepth(baseDepth) : undefined,
+    };
+    applyFieldingResult(adjusted);
+  }, [fielding]);
+
+  const applyFieldingResult = useCallback((fr: FieldingResult) => {
+    let resolvedAtBat: AtBatResult;
+    if (fr.outcome === 'caught') {
+      resolvedAtBat = lastResult?.ballType === 'grounder' ? 'groundout' : 'flyout';
+    } else {
+      const depth = fr.hitDepth ?? 'shallow';
+      if (depth === 'shallow') resolvedAtBat = 'single';
+      else if (depth === 'mid') resolvedAtBat = 'double';
+      else resolvedAtBat = 'triple';
+    }
+    game.recordPitchResult(resolvedAtBat);
+    fireChantsForResult(resolvedAtBat);
+    setPhase('resolved');
+    scheduleNextAtBat();
+  }, [lastResult]);
 
   function fireChantsForResult(result: AtBatResult) {
     const wind = game.currentWind;
@@ -310,13 +401,63 @@ export default function GameScreen() {
       )}
 
       <View style={styles.fieldContainer}>
-        <Field
-          stadium={stadium}
-          bases={game.bases}
-          sandstormVisible={showSandstorm}
-          flickerVisible={showFlicker}
-          eruptionVisible={showEruption}
-        />
+        <View
+          style={styles.fieldOverlayWrap}
+          onLayout={(e) =>
+            setFieldSize({
+              width: e.nativeEvent.layout.width,
+              height: e.nativeEvent.layout.height,
+            })
+          }
+        >
+          <Field
+            stadium={stadium}
+            bases={game.bases}
+            sandstormVisible={showSandstorm}
+            flickerVisible={showFlicker}
+            eruptionVisible={showEruption}
+          />
+          {POSITIONS.map((pos) => {
+            const charId = lineup[pos];
+            const char = charId !== 'generic' ? CHARACTER_MAP[charId] : undefined;
+            const color = char?.appearance.colorPrimary ?? '#666';
+            const home = HOME_POSITIONS[pos];
+            const isTarget = fieldingTarget?.pos === pos;
+            return (
+              <Fielder
+                key={pos}
+                position={pos}
+                colorPrimary={color}
+                fieldWidthPx={fieldSize.width}
+                fieldHeightPx={fieldSize.height}
+                homeX={home.x}
+                homeY={home.y}
+                targetX={isTarget ? fieldingTarget!.x : undefined}
+                targetY={isTarget ? fieldingTarget!.y : undefined}
+                durationMs={isTarget ? lastResult?.airTimeMs ?? 800 : 400}
+              />
+            );
+          })}
+          {phase === 'ball_in_flight' && lastResult?.landing && (
+            <BallInFlight
+              fieldWidthPx={fieldSize.width}
+              fieldHeightPx={fieldSize.height}
+              landingX={lastResult.landing.x}
+              landingY={lastResult.landing.y}
+              durationMs={lastResult.airTimeMs}
+              onLanded={handleBallLanded}
+            />
+          )}
+          {phase === 'close_play' && fieldingTarget && (
+            <CloseplayPrompt
+              fieldWidthPx={fieldSize.width}
+              fieldHeightPx={fieldSize.height}
+              targetX={fieldingTarget.x}
+              targetY={fieldingTarget.y}
+              onResult={handleCloseplayResult}
+            />
+          )}
+        </View>
         <View style={styles.pitcherPos}>
           <Pitcher throwing={phase === 'pitching'} />
         </View>
@@ -380,6 +521,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     flex: 1,
     justifyContent: 'center',
+  },
+  fieldOverlayWrap: {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 1,
   },
   pitcherPos: { position: 'absolute', top: '35%', alignSelf: 'center' },
   ballLane: { position: 'absolute', top: '50%', alignSelf: 'center' },
