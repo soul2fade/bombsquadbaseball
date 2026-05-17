@@ -1,4 +1,4 @@
-import { Audio, AVPlaybackSource } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, AudioSource, AudioPlayer } from 'expo-audio';
 
 type SoundKey =
   | 'hit_normal'
@@ -17,30 +17,30 @@ type SoundKey =
   | 'eruption_warning';
 
 interface SoundEntry {
-  source: AVPlaybackSource;
+  source: AudioSource;
   volume: number;
 }
 
 const SOUND_LIBRARY: Partial<Record<SoundKey, SoundEntry>> = {
   // Populate as audio files land in assets/sounds/. Until then trigger() no-ops.
+  // Example:
+  // hit_normal: { source: require('../assets/sounds/hits/hit_normal.mp3'), volume: 1 },
 };
 
 class AudioServiceImpl {
   private masterVolume = 0.8;
-  private activeAmbient: Audio.Sound | null = null;
+  private ambient: AudioPlayer | null = null;
   private initialized = false;
 
   async init() {
     if (this.initialized) return;
     try {
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
       });
       this.initialized = true;
-    } catch (e) {
-      // Audio init can fail on web — degrade silently
+    } catch {
       this.initialized = true;
     }
   }
@@ -49,48 +49,47 @@ class AudioServiceImpl {
     this.masterVolume = Math.max(0, Math.min(1, v));
   }
 
-  async trigger(key: SoundKey) {
+  trigger(key: SoundKey) {
     const entry = SOUND_LIBRARY[key];
     if (!entry) return;
     try {
-      const { sound } = await Audio.Sound.createAsync(entry.source, {
-        volume: entry.volume * this.masterVolume,
-      });
-      await sound.playAsync();
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if ('didJustFinish' in status && status.didJustFinish) {
-          sound.unloadAsync().catch(() => {});
+      const player = createAudioPlayer(entry.source);
+      player.volume = entry.volume * this.masterVolume;
+      player.play();
+      const sub = player.addListener('playbackStatusUpdate', (status) => {
+        if (status.didJustFinish) {
+          sub.remove();
+          player.remove();
         }
       });
-    } catch (e) {
-      // Missing or unreadable audio file — silent fail keeps gameplay alive
+    } catch {
+      // Missing or unreadable audio — silent fail keeps gameplay alive
     }
   }
 
-  async playAmbient(source: AVPlaybackSource | undefined, volume = 0.6) {
+  playAmbient(source: AudioSource | undefined, volume = 0.6) {
     if (!source) return;
-    await this.stopAmbient();
+    this.stopAmbient();
     try {
-      const { sound } = await Audio.Sound.createAsync(source, {
-        isLooping: true,
-        volume: volume * this.masterVolume,
-      });
-      this.activeAmbient = sound;
-      await sound.playAsync();
-    } catch (e) {
+      const player = createAudioPlayer(source);
+      player.volume = volume * this.masterVolume;
+      player.loop = true;
+      player.play();
+      this.ambient = player;
+    } catch {
       // ignore
     }
   }
 
-  async stopAmbient() {
-    if (!this.activeAmbient) return;
+  stopAmbient() {
+    if (!this.ambient) return;
     try {
-      await this.activeAmbient.stopAsync();
-      await this.activeAmbient.unloadAsync();
-    } catch (e) {
+      this.ambient.pause();
+      this.ambient.remove();
+    } catch {
       // ignore
     }
-    this.activeAmbient = null;
+    this.ambient = null;
   }
 }
 
