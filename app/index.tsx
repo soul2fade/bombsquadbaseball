@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { Link, Redirect, useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../constants/theme';
 import { Button } from '../components/ui/Button';
@@ -10,9 +10,6 @@ import { useSettingsStore } from '../stores/settingsStore';
 export default function MainMenu() {
   const router = useRouter();
   const teamName = useSettingsStore((s) => s.teamName);
-  const hasSeenOnboarding = useSettingsStore((s) => s.hasSeenOnboarding);
-
-  if (!hasSeenOnboarding) return <Redirect href="/onboarding" />;
 
   return (
     <SafeAreaView style={styles.safe}>
