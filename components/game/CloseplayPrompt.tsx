@@ -3,12 +3,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { TAP_WINDOW_MS, TAP_SWEET_SPOT_MS } from '../../engines/fieldingEngine';
 
+export type CloseplayOutcome = 'tap_success' | 'tap_miss' | 'timeout';
+
 interface Props {
   fieldWidthPx: number;
   fieldHeightPx: number;
   targetX: number;
   targetY: number;
-  onResult: (success: boolean) => void;
+  onResult: (outcome: CloseplayOutcome) => void;
 }
 
 export function CloseplayPrompt({ fieldWidthPx, fieldHeightPx, targetX, targetY, onResult }: Props) {
@@ -24,7 +26,7 @@ export function CloseplayPrompt({ fieldWidthPx, fieldHeightPx, targetX, targetY,
     const timeout = setTimeout(() => {
       if (!resolvedRef.current) {
         resolvedRef.current = true;
-        onResult(Math.random() < 0.5);
+        onResult('timeout');
       }
     }, TAP_WINDOW_MS);
     return () => clearTimeout(timeout);
@@ -37,7 +39,7 @@ export function CloseplayPrompt({ fieldWidthPx, fieldHeightPx, targetX, targetY,
     const centerOfSweet = (TAP_WINDOW_MS - TAP_SWEET_SPOT_MS) / 2 + TAP_SWEET_SPOT_MS / 2;
     const fromCenter = Math.abs(elapsed - centerOfSweet);
     const success = fromCenter <= TAP_SWEET_SPOT_MS / 2;
-    onResult(success);
+    onResult(success ? 'tap_success' : 'tap_miss');
   };
 
   const ringStyle = useAnimatedStyle(() => ({

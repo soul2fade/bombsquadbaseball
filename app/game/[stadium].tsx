@@ -34,7 +34,7 @@ import { Pitcher } from '../../components/game/Pitcher';
 import { Batter } from '../../components/game/Batter';
 import { Fielder } from '../../components/game/Fielder';
 import { BallInFlight } from '../../components/game/BallInFlight';
-import { CloseplayPrompt } from '../../components/game/CloseplayPrompt';
+import { CloseplayPrompt, CloseplayOutcome } from '../../components/game/CloseplayPrompt';
 import { Button } from '../../components/ui/Button';
 import {
   pickFielder,
@@ -71,6 +71,7 @@ export default function GameScreen() {
   const [fieldingTarget, setFieldingTarget] = useState<{ pos: Position; x: number; y: number } | null>(null);
   const [fieldSize, setFieldSize] = useState<{ width: number; height: number }>({ width: 280, height: 280 });
   const pitchStartTimeRef = useRef<number>(0);
+  const atBatResolvedRef = useRef<boolean>(true);
 
   const lineup = useGameStore((s) => s.lineup);
   const setLineup = useGameStore((s) => s.setLineup);
@@ -178,9 +179,10 @@ export default function GameScreen() {
     setPitch(result);
     setPhase('pitching');
     pitchStartTimeRef.current = Date.now();
+    atBatResolvedRef.current = false;
     setTimeout(() => setPhase('swing_window'), result.travelMs * 0.5);
     setTimeout(() => {
-      if (!batterSwinging) {
+      if (!atBatResolvedRef.current) {
         resolveAtBat({ swung: false, swingAtMs: 0, pitchArrivalMs: result.travelMs });
       }
     }, result.travelMs + TUNING.swing.goodWindowMs);
@@ -196,7 +198,8 @@ export default function GameScreen() {
 
   function resolveAtBat(swingInput: { swung: boolean; swingAtMs: number; pitchArrivalMs: number }) {
     if (!pitch || !game.currentWind || !stadium) return;
-    if (phase === 'resolved') return;
+    if (atBatResolvedRef.current) return;
+    atBatResolvedRef.current = true;
 
     const combinedBatterBoost = {
       contactBoost: batterBoost.contactBoost ?? 0,
@@ -277,17 +280,21 @@ export default function GameScreen() {
     }
   }, [lastResult, lineup]);
 
-  const handleCloseplayResult = useCallback((tapSuccess: boolean) => {
+  const handleCloseplayResult = useCallback((outcome: CloseplayOutcome) => {
     if (!fielding) return;
-    const finalOutcome = tapSuccess ? 'caught' : 'hit';
+    // tap_success → catch; tap_miss → hit with +1 base penalty; timeout → fall through to engine RNG outcome
     const bumpDepth = (d: 'shallow' | 'mid' | 'deep'): 'shallow' | 'mid' | 'deep' =>
       d === 'shallow' ? 'mid' : d === 'mid' ? 'deep' : 'deep';
     const baseDepth = fielding.hitDepth ?? 'mid';
-    const adjusted: FieldingResult = {
-      ...fielding,
-      outcome: finalOutcome,
-      hitDepth: finalOutcome === 'hit' ? bumpDepth(baseDepth) : undefined,
-    };
+    let adjusted: FieldingResult;
+    if (outcome === 'tap_success') {
+      adjusted = { ...fielding, outcome: 'caught', hitDepth: undefined };
+    } else if (outcome === 'tap_miss') {
+      adjusted = { ...fielding, outcome: 'hit', hitDepth: bumpDepth(baseDepth) };
+    } else {
+      // timeout: use whatever the engine's RNG decided (no player penalty)
+      adjusted = fielding;
+    }
     applyFieldingResult(adjusted);
   }, [fielding]);
 
