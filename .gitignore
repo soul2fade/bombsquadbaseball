@@ -14,3 +14,5 @@ web-build/
 ios/
 android/
 expo-env.d.ts
+.netlify/
+.claude/
