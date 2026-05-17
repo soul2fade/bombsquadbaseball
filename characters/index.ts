@@ -7,6 +7,14 @@ import { summit } from './summit';
 import { phantom } from './phantom';
 import { ember } from './ember';
 
+export type Position = 'P' | 'C' | '1B' | '2B' | 'SS' | '3B' | 'LF' | 'CF' | 'RF';
+
+export interface DefensiveStats {
+  range: number;
+  reactionMs: number;
+  armStrength: number;
+}
+
 export interface SpecialAbility {
   id: string;
   name: string;
@@ -32,6 +40,8 @@ export interface Character {
   unlockCondition: UnlockCondition;
   specialAbility: SpecialAbility;
   appearance: CharacterAppearance;
+  position?: Position;
+  defensiveStats?: DefensiveStats;
 }
 
 export const CHARACTERS: Character[] = [
