@@ -1,5 +1,11 @@
 import { UnlockCondition } from '../stadiums';
 import { dusty } from './dusty';
+import { shadow } from './shadow';
+import { wrecker } from './wrecker';
+import { spring } from './spring';
+import { summit } from './summit';
+import { phantom } from './phantom';
+import { ember } from './ember';
 
 export interface SpecialAbility {
   id: string;
@@ -28,7 +34,15 @@ export interface Character {
   appearance: CharacterAppearance;
 }
 
-export const CHARACTERS: Character[] = [dusty];
+export const CHARACTERS: Character[] = [
+  dusty,
+  shadow,
+  wrecker,
+  spring,
+  summit,
+  phantom,
+  ember,
+];
 
 export const CHARACTER_MAP: Record<string, Character> = Object.fromEntries(
   CHARACTERS.map((c) => [c.id, c])
