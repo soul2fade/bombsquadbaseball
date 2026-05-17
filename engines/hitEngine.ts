@@ -2,6 +2,7 @@ import { AtBatResult, SwingTiming } from '../constants/gameRules';
 import { TUNING } from '../constants/config';
 import { WindResult } from './windEngine';
 import { PitchResult } from './pitchEngine';
+import { Point } from './fieldingEngine';
 
 export interface SwingInput {
   swung: boolean;
@@ -14,12 +15,17 @@ export interface BatterModifier {
   powerBoost?: number;
 }
 
+export type BallType = 'grounder' | 'liner' | 'fly';
+
 export interface HitResult {
   result: AtBatResult;
   timing: SwingTiming;
   power: number;
   trajectoryX: number;
   trajectoryY: number;
+  landing: Point | null;
+  ballType: BallType;
+  airTimeMs: number;
 }
 
 export function resolveSwing(
@@ -30,7 +36,10 @@ export function resolveSwing(
 ): HitResult {
   if (!swing.swung) {
     const result: AtBatResult = pitch.inStrikeZone ? 'strike' : 'ball';
-    return { result, timing: 'miss', power: 0, trajectoryX: 0, trajectoryY: 0 };
+    return {
+      result, timing: 'miss', power: 0, trajectoryX: 0, trajectoryY: 0,
+      landing: null, ballType: 'grounder', airTimeMs: 0,
+    };
   }
 
   const delta = Math.abs(swing.swingAtMs - swing.pitchArrivalMs);
@@ -43,7 +52,10 @@ export function resolveSwing(
   }
 
   if (timing === 'miss') {
-    return { result: 'strike', timing, power: 0, trajectoryX: 0, trajectoryY: 0 };
+    return {
+      result: 'strike', timing, power: 0, trajectoryX: 0, trajectoryY: 0,
+      landing: null, ballType: 'grounder', airTimeMs: 0,
+    };
   }
 
   const visibilityPenalty = wind.visibilityReduction * 0.4;
@@ -54,7 +66,10 @@ export function resolveSwing(
     (timing === 'perfect' ? 0.35 : 0.05);
 
   if (contact < 0.4) {
-    return { result: 'foul', timing, power: contact, trajectoryX: 0, trajectoryY: 0 };
+    return {
+      result: 'foul', timing, power: contact, trajectoryX: 0, trajectoryY: 0,
+      landing: null, ballType: 'grounder', airTimeMs: 0,
+    };
   }
 
   const basePower = TUNING.swing.powerBase + (mod.powerBoost ?? 0);
@@ -67,6 +82,17 @@ export function resolveSwing(
   const trajectoryX = wind.driftX + (Math.random() - 0.5) * 0.3;
   const trajectoryY = power;
 
+  const landingX = Math.max(-1, Math.min(1, trajectoryX * 1.4));
+  const landingY = Math.max(0, Math.min(1, power * 0.85));
+  const landing: Point = { x: landingX, y: landingY };
+
+  let ballType: BallType;
+  if (power < 0.35) ballType = 'grounder';
+  else if (power < 0.65) ballType = 'liner';
+  else ballType = 'fly';
+
+  const airTimeMs = Math.round(500 + power * 1500);
+
   let result: AtBatResult;
   if (power >= TUNING.hit.hrThreshold) result = 'home_run';
   else if (power >= TUNING.hit.tripleThreshold) result = 'triple';
@@ -74,5 +100,5 @@ export function resolveSwing(
   else if (power >= TUNING.hit.singleThreshold) result = 'single';
   else result = Math.random() > 0.5 ? 'flyout' : 'groundout';
 
-  return { result, timing, power, trajectoryX, trajectoryY };
+  return { result, timing, power, trajectoryX, trajectoryY, landing, ballType, airTimeMs };
 }
