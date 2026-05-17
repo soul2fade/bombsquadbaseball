@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +10,11 @@ import { useSettingsStore } from '../stores/settingsStore';
 export default function MainMenu() {
   const router = useRouter();
   const teamName = useSettingsStore((s) => s.teamName);
+  const hasSeenOnboarding = useSettingsStore((s) => s.hasSeenOnboarding);
+
+  useEffect(() => {
+    if (!hasSeenOnboarding) router.replace('/onboarding');
+  }, [hasSeenOnboarding, router]);
 
   return (
     <SafeAreaView style={styles.safe}>

@@ -15,6 +15,7 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="index" options={{ title: 'Slugger', headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="game/[stadium]" options={{ title: 'Play Ball', headerShown: false }} />
         <Stack.Screen name="game/results" options={{ title: 'Results' }} />
         <Stack.Screen name="settings/index" options={{ title: 'Settings' }} />

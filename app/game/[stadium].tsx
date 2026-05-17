@@ -15,6 +15,7 @@ import {
   getQuirkPreEffects,
   QuirkPreEffects,
 } from '../../engines/quirkEngine';
+import { audioService } from '../../engines/audioService';
 import { PITCH_TYPES, PitchType, AtBatResult } from '../../constants/gameRules';
 import { TUNING } from '../../constants/config';
 
@@ -79,8 +80,14 @@ export default function GameScreen() {
       )
     );
     game.startGame(stadium.id, settings.teamName, 'Visitors');
+    audioService.init().then(() => {
+      audioService.setMasterVolume(settings.masterVolume);
+    });
     rollNextWind();
     rollNextQuirk();
+    return () => {
+      audioService.stopAmbient();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stadium?.id]);
 
@@ -212,12 +219,18 @@ export default function GameScreen() {
   function fireChantsForResult(result: AtBatResult) {
     const wind = game.currentWind;
     if (result === 'home_run') {
+      audioService.trigger('hit_tailwind_hr');
+      audioService.trigger('crowd_roar');
       if (wind?.state === 'tailwind') triggerChant('sandstorm_hr_during_tailwind');
       else triggerChant('home_run');
     }
     if (result === 'strikeout') {
+      audioService.trigger('crowd_cheer');
       if (wind?.state === 'sandstorm') triggerChant('sandstorm_strikeout_in_storm');
       else triggerChant('strikeout');
+    }
+    if (['single', 'double', 'triple'].includes(result)) {
+      audioService.trigger(wind?.state === 'sandstorm' ? 'hit_muffled' : 'hit_normal');
     }
     if (result === 'flyout' && wind?.state === 'headwind') {
       triggerChant('sandstorm_headwind_kills_fly');

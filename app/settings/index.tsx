@@ -63,6 +63,12 @@ export default function Settings() {
               <Text style={styles.chevron}>›</Text>
             </Pressable>
           </Link>
+          <Link href="/onboarding" asChild>
+            <Pressable style={styles.link}>
+              <Text style={styles.linkText}>Replay Tutorial</Text>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          </Link>
         </Section>
       </ScrollView>
     </SafeAreaView>

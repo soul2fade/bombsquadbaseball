@@ -14,6 +14,7 @@ export interface UserSettings {
   kidFriendlyChants: boolean;
   highContrast: boolean;
   customChants: Record<string, string>;
+  hasSeenOnboarding: boolean;
 }
 
 interface SettingsActions {
@@ -33,6 +34,7 @@ const DEFAULTS: UserSettings = {
   kidFriendlyChants: true,
   highContrast: false,
   customChants: {},
+  hasSeenOnboarding: false,
 };
 
 export const useSettingsStore = create<UserSettings & SettingsActions>()(
